@@ -13,7 +13,7 @@ function App() {
             const response = await axios.get('http://192.168.11.108:8000/api/tasks.php');
             setTasks(response.data);
         } catch (error) {
-            console.error('Error fetching tasks:', error);
+            console.error(' Error fetching tasks:', error);
         } finally {
             setLoading(false);
         }
