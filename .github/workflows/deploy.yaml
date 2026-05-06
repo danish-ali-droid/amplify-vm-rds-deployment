@@ -20,7 +20,8 @@ jobs:
          cache: 'npm'
          cache-dependency-path: './frontend/package.json'
      - name: install dependencies
-       run: npm install
+       run: npm install --legacy-peer-deps
+       working-directory: ./frontend
      - name: Run test
        run: npm run test:ci
 
