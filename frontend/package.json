@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start" : "vite --host 0.0.0.0 --port 5173",
-    "test": "react-scripts test"
+    "test": "react-scripts test",
+    "test:ci": "jest --ci --maxWorkers=2"
   },
 
   "dependencies": {
