@@ -1,0 +1,21 @@
+name: frontend pipeline
+on: 
+ push:
+   branches: [main]
+   paths:
+     - 'frontend/**'
+jobs:
+  test: 
+    runs-on: ubuntu-latest
+    defaults:
+     run:
+       working-directory: ./frontend/ 
+    steps:
+     - name: checkout code
+       uses: actions/checkout@v4
+     - name: install dependencies
+       run: npm install
+     - name: Run test
+       run: npm test
+  
+      
