@@ -4,9 +4,7 @@ on:
    branches: [main]
    paths:
     - 'frontend/**'
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+ workflow-dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
