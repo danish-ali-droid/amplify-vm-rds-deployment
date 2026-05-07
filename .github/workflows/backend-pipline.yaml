@@ -45,7 +45,28 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
-
-
+  deploy:
+    needs: build_push   
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: ./backend
+  steps:
+      - name: pull the image from docker hub
+        run:  docker pull ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
+      - name: set .env in runner
+        run: |
+         echo " DB_PASSWORD=${{secrets.DB_PASSWORD}}" > .env
+         echo " DB_NAME=${{secrets.DB_NAME}}" >> .env
+         echo " PORT=${{secrets.PORT}}" >> .env
+         echo " HOST=${{secrets.HOST}}" >> .env
+      - name: deploying on the docker
+        run: |
+          docker stop backend_container || true
+          docker rm backend_container || true
+          docker run -d --name backend_container -p 80:80 --env .env ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
+     
+    
+  
    
      
