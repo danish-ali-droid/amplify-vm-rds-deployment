@@ -7,10 +7,11 @@ import './App.css';
 function App() {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
-
+    const BASE_URL = process.env.REACT_APP_BACKEND_URL;
     const fetchTasks = async () => {
+
         try {
-            const response = await axios.get('http://192.168.11.108:8000/api/tasks.php');
+            const response = await axios.get(`${BASE_URL}/api/tasks.php`);
             setTasks(response.data);
         } catch (error) {
             console.error('Error fetching tasks:', error);

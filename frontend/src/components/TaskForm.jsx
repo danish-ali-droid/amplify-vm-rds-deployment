@@ -5,14 +5,14 @@ const TaskForm = ({ onTaskAdded }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
-
+    const BASE_URL = process.env.REACT_APP_BACKEND_URL;
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!title.trim()) return;
 
         setLoading(true);
         try {
-            await axios.post('http://192.168.11.108:8000/api/tasks.php', {
+            await axios.post(`${BASE_URL}/api/tasks.php`, {
                 title,
                 description
             });

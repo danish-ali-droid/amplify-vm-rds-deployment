@@ -1,10 +1,11 @@
 import React from 'react';
 import axios from 'axios';
 
+const BASE_URL = process.env.REACT_APP_BACKEND_URL;
 const TaskItem = ({ task, onTaskUpdate }) => {
     const toggleComplete = async () => {
         try {
-            await axios.put('http://192.168.11.108:8000/api/tasks.php', {
+            await axios.put(`${BASE_URL}/api/tasks.php`, {
                 ...task,
                 status: task.status === 'completed' ? 'pending' : 'completed'
             });
@@ -16,7 +17,7 @@ const TaskItem = ({ task, onTaskUpdate }) => {
 
     const deleteTask = async () => {
         try {
-            await axios.delete(`http://localhost:8000/api/tasks.php?id=${task.id}`);
+            await axios.delete(`${BASE_URL}/api/tasks.php?id=${task.id}`);
             onTaskUpdate();
         } catch (error) {
             console.error('Error deleting task:', error);
