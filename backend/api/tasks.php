@@ -19,7 +19,7 @@ switch ($method) {
     case 'GET':
         $stmt = $pdo->query("SELECT * FROM tasks ORDER BY created_at DESC");
         echo json_encode($stmt->fetchAll());
-        break;
+         break;
 
     case 'POST':
         $data = json_decode(file_get_contents("php://input"), true);
