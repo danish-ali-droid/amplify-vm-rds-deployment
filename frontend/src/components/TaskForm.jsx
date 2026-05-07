@@ -5,7 +5,7 @@ const TaskForm = ({ onTaskAdded }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
-    const BASE_URL = process.env.REACT_APP_BACKEND_URL;
+    const BASE_URL = import.meta.env.VITE_API_URL;
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!title.trim()) return;
