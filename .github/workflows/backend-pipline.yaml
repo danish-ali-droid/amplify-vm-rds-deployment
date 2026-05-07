@@ -1,9 +1,9 @@
 name: backend pipeline 
 on:
   push:
-     branches: [main]
+     branches: [ main ]
      paths:
-       - './backend/**'
+       - 'backend/**'
 jobs:
   test:
     runs-on: ubuntu-latest
