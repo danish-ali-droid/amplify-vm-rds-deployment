@@ -51,7 +51,7 @@ jobs:
     defaults:
       run:
         working-directory: ./backend
-  steps:
+    steps:
       - name: pull the image from docker hub
         run:  docker pull ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
       - name: set .env in runner
