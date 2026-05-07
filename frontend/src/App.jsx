@@ -7,7 +7,7 @@ import './App.css';
 function App() {
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const BASE_URL = process.env.REACT_APP_BACKEND_URL;
+    const BASE_URL = import.meta.env.VITE_API_URL;
     const fetchTasks = async () => {
 
         try {
