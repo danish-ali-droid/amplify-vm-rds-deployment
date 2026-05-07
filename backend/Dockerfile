@@ -9,5 +9,5 @@ RUN echo '<Directory /var/www/html/> \n\
     Require all granted \n\
 </Directory>' >> /etc/apache2/apache2.conf
 RUN a2enmod ssl
-RUN a2ensite 000-default-ssl
+RUN if [ -f /etc/apache2/sites-available/default-ssl.conf ]; then a2ensite default-ssl; fi
 EXPOSE 80 443
