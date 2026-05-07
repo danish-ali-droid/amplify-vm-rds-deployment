@@ -41,5 +41,5 @@ jobs:
           AWS_REGION: eu-north-1
         run: |
           aws amplify update-app --app-id ${{ secrets.AMPLIFY_APP_ID }} \
-            --environment-variables REACT_APP_BACKEND_URL=${{ secrets.BACKEND_URL }} 
+            --environment-variables VITE_API_URL=${{ secrets.VITE_API__URL }} 
           aws amplify start-job --app-id ${{ secrets.AMPLIFY_APP_ID }} --branch-name main --job-type RELEASE
