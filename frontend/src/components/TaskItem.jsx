@@ -25,7 +25,7 @@ const TaskItem = ({ task, onTaskUpdate }) => {
             await axios.delete(`${BASE_URL}/api/tasks.php?id=${task.id}`, {
             headers: {
                 'ngrok-skip-browser-warning': 'true'
-            });
+	    } });
             onTaskUpdate();
         } catch (error) {
             console.error('Error deleting task:', error);
