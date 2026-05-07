@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: composer install
       - name: run phpUnit test
-        run: vendor/bin/phpunit
+        run: vendor/bin/phpunit tests
       - run: echo "Test is successfull"
   
    
