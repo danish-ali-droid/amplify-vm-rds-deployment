@@ -61,7 +61,7 @@ jobs:
         run: |
           docker stop backend_container || true
           docker rm backend_container || true
-          docker run -d --name backend_container -p 80:80 --env .env ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
+          docker run -d --name backend_container -p 80:80 --env-file .env ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
      
     
   
