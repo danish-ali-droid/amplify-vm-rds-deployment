@@ -1,0 +1,12 @@
+{
+    "name": "danish-ali/backend",
+    "authors": [
+        {
+            "name": "Danish-ali",
+            "email": "0000danishsh@gmail.com"
+        }
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "^12.5"
+    }
+}
