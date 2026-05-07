@@ -1,0 +1,27 @@
+name: backend pipeline 
+on:
+  push:
+     branches: [main]
+     paths:
+       - './backend/**'
+jobs:
+  runs-on: ubuntu-lates
+  defaults:
+    run:
+      working-directory: ./backend
+  test:
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: setup php
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype
+      - name: Install dependencies
+        run: composer install
+      - name: run phpUnit test
+        run: vendor/bin/phpunit
+      - run: echo "Test is successfull"
+  
+   
