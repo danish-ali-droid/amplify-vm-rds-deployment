@@ -11,7 +11,7 @@ function App() {
     const fetchTasks = async () => {
 
         try {
-            const response = await axios.get(`${BASE_URL}/api/tasks.php`, { headers: {'ngrok-skip-browser-warning': 'true' }});
+            const response = await axios.get(`${BASE_URL}/api/tasks.php`);
                 console.log("Testing URL:", BASE_URL);
 		setTasks(response.data);
         } catch (error) {
