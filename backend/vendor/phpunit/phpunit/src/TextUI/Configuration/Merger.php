@@ -12,14 +12,11 @@ namespace PHPUnit\TextUI\Configuration;
 use const DIRECTORY_SEPARATOR;
 use const PATH_SEPARATOR;
 use function array_diff;
-use function array_key_exists;
-use function array_values;
 use function assert;
 use function dirname;
 use function explode;
 use function is_int;
 use function realpath;
-use function sprintf;
 use function time;
 use PHPUnit\Event\Facade as EventFacade;
 use PHPUnit\Runner\TestSuiteSorter;
@@ -39,7 +36,7 @@ use SebastianBergmann\Invoker\Invoker;
  *
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
  */
-final readonly class Merger
+final class Merger
 {
     /**
      * @throws \PHPUnit\TextUI\XmlConfiguration\Exception
@@ -84,8 +81,20 @@ final readonly class Merger
             $testResultCacheFile    = $cacheDirectory . DIRECTORY_SEPARATOR . 'test-results';
         }
 
+        if ($coverageCacheDirectory === null) {
+            if ($cliConfiguration->hasCoverageCacheDirectory() && Filesystem::createDirectory($cliConfiguration->coverageCacheDirectory())) {
+                $coverageCacheDirectory = realpath($cliConfiguration->coverageCacheDirectory());
+            } elseif ($xmlConfiguration->codeCoverage()->hasCacheDirectory()) {
+                $coverageCacheDirectory = $xmlConfiguration->codeCoverage()->cacheDirectory()->path();
+            }
+        }
+
         if (!isset($testResultCacheFile)) {
-            if ($xmlConfiguration->wasLoadedFromFile()) {
+            if ($cliConfiguration->hasCacheResultFile()) {
+                $testResultCacheFile = $cliConfiguration->cacheResultFile();
+            } elseif ($xmlConfiguration->phpunit()->hasCacheResultFile()) {
+                $testResultCacheFile = $xmlConfiguration->phpunit()->cacheResultFile();
+            } elseif ($xmlConfiguration->wasLoadedFromFile()) {
                 $testResultCacheFile = dirname(realpath($xmlConfiguration->filename())) . DIRECTORY_SEPARATOR . '.phpunit.result.cache';
             } else {
                 $candidate = realpath($_SERVER['PHP_SELF']);
@@ -122,12 +131,6 @@ final readonly class Merger
             $failOnPhpunitDeprecation = $xmlConfiguration->phpunit()->failOnPhpunitDeprecation();
         }
 
-        if ($cliConfiguration->hasFailOnPhpunitNotice()) {
-            $failOnPhpunitNotice = $cliConfiguration->failOnPhpunitNotice();
-        } else {
-            $failOnPhpunitNotice = $xmlConfiguration->phpunit()->failOnPhpunitNotice();
-        }
-
         if ($cliConfiguration->hasFailOnPhpunitWarning()) {
             $failOnPhpunitWarning = $cliConfiguration->failOnPhpunitWarning();
         } else {
@@ -136,10 +139,8 @@ final readonly class Merger
 
         if ($cliConfiguration->hasFailOnEmptyTestSuite()) {
             $failOnEmptyTestSuite = $cliConfiguration->failOnEmptyTestSuite();
-        } elseif ($xmlConfiguration->phpunit()->hasFailOnEmptyTestSuite()) {
-            $failOnEmptyTestSuite = $xmlConfiguration->phpunit()->failOnEmptyTestSuite();
         } else {
-            $failOnEmptyTestSuite = $this->hasExplicitTestSelection($cliConfiguration);
+            $failOnEmptyTestSuite = $xmlConfiguration->phpunit()->failOnEmptyTestSuite();
         }
 
         if ($cliConfiguration->hasFailOnIncomplete()) {
@@ -182,12 +183,6 @@ final readonly class Merger
 
         if ($cliConfiguration->hasDoNotFailOnPhpunitDeprecation()) {
             $doNotFailOnPhpunitDeprecation = $cliConfiguration->doNotFailOnPhpunitDeprecation();
-        }
-
-        $doNotFailOnPhpunitNotice = false;
-
-        if ($cliConfiguration->hasDoNotFailOnPhpunitNotice()) {
-            $doNotFailOnPhpunitNotice = $cliConfiguration->doNotFailOnPhpunitNotice();
         }
 
         $doNotFailOnPhpunitWarning = false;
@@ -242,12 +237,6 @@ final readonly class Merger
             $stopOnDeprecation = $cliConfiguration->stopOnDeprecation();
         } else {
             $stopOnDeprecation = $xmlConfiguration->phpunit()->stopOnDeprecation();
-        }
-
-        $specificDeprecationToStopOn = null;
-
-        if ($cliConfiguration->hasSpecificDeprecationToStopOn()) {
-            $specificDeprecationToStopOn = $cliConfiguration->specificDeprecationToStopOn();
         }
 
         if ($cliConfiguration->hasStopOnError()) {
@@ -332,35 +321,8 @@ final readonly class Merger
 
         $extensionBootstrappers = [];
 
-        if ($cliConfiguration->hasExtensions()) {
-            foreach ($cliConfiguration->extensions() as $extension) {
-                if (array_key_exists($extension, $extensionBootstrappers)) {
-                    EventFacade::emitter()->testRunnerTriggeredPhpunitWarning(
-                        sprintf(
-                            'Extension "%s" is configured more than once on the command line',
-                            $extension,
-                        ),
-                    );
-                }
-
-                $extensionBootstrappers[$extension] = [
-                    'className'  => $extension,
-                    'parameters' => [],
-                ];
-            }
-        }
-
         foreach ($xmlConfiguration->extensions() as $extension) {
-            if (array_key_exists($extension->className(), $extensionBootstrappers)) {
-                EventFacade::emitter()->testRunnerTriggeredPhpunitWarning(
-                    sprintf(
-                        'Extension "%s" is configured more than once',
-                        $extension->className(),
-                    ),
-                );
-            }
-
-            $extensionBootstrappers[$extension->className()] = [
+            $extensionBootstrappers[] = [
                 'className'  => $extension->className(),
                 'parameters' => $extension->parameters(),
             ];
@@ -388,13 +350,11 @@ final readonly class Merger
         $coverageHtmlColorWarning       = $defaultColors->warning();
         $coverageHtmlColorDanger        = $defaultColors->danger();
         $coverageHtmlCustomCssFile      = null;
-        $coverageOpenClover             = null;
         $coveragePhp                    = null;
         $coverageText                   = null;
         $coverageTextShowUncoveredFiles = false;
         $coverageTextShowOnlySummary    = false;
         $coverageXml                    = null;
-        $coverageXmlIncludeSource       = true;
         $coverageFromXmlConfiguration   = true;
 
         if ($cliConfiguration->hasNoCoverage() && $cliConfiguration->noCoverage()) {
@@ -449,12 +409,6 @@ final readonly class Merger
             $coverageHtml = $xmlConfiguration->codeCoverage()->html()->target()->path();
         }
 
-        if ($cliConfiguration->hasCoverageOpenClover()) {
-            $coverageOpenClover = $cliConfiguration->coverageOpenClover();
-        } elseif ($coverageFromXmlConfiguration && $xmlConfiguration->codeCoverage()->hasOpenClover()) {
-            $coverageOpenClover = $xmlConfiguration->codeCoverage()->openClover()->target()->path();
-        }
-
         if ($cliConfiguration->hasCoveragePhp()) {
             $coveragePhp = $cliConfiguration->coveragePhp();
         } elseif ($coverageFromXmlConfiguration && $xmlConfiguration->codeCoverage()->hasPhp()) {
@@ -484,12 +438,6 @@ final readonly class Merger
             $coverageXml = $cliConfiguration->coverageXml();
         } elseif ($coverageFromXmlConfiguration && $xmlConfiguration->codeCoverage()->hasXml()) {
             $coverageXml = $xmlConfiguration->codeCoverage()->xml()->target()->path();
-        }
-
-        if ($cliConfiguration->hasExcludeSourceFromXmlCoverage()) {
-            $coverageXmlIncludeSource = !$cliConfiguration->excludeSourceFromXmlCoverage();
-        } elseif ($coverageFromXmlConfiguration && $xmlConfiguration->codeCoverage()->hasXml()) {
-            $coverageXmlIncludeSource = $xmlConfiguration->codeCoverage()->xml()->includeSource();
         }
 
         if ($cliConfiguration->hasBackupGlobals()) {
@@ -586,12 +534,6 @@ final readonly class Merger
             $displayDetailsOnPhpunitDeprecations = $xmlConfiguration->phpunit()->displayDetailsOnPhpunitDeprecations();
         }
 
-        if ($cliConfiguration->hasDisplayDetailsOnPhpunitNotices()) {
-            $displayDetailsOnPhpunitNotices = $cliConfiguration->displayDetailsOnPhpunitNotices();
-        } else {
-            $displayDetailsOnPhpunitNotices = $xmlConfiguration->phpunit()->displayDetailsOnPhpunitNotices();
-        }
-
         if ($cliConfiguration->hasDisplayDetailsOnTestsThatTriggerErrors()) {
             $displayDetailsOnTestsThatTriggerErrors = $cliConfiguration->displayDetailsOnTestsThatTriggerErrors();
         } else {
@@ -616,7 +558,8 @@ final readonly class Merger
             $reverseDefectList = $xmlConfiguration->phpunit()->reverseDefectList();
         }
 
-        $requireCoverageMetadata = $xmlConfiguration->phpunit()->requireCoverageMetadata();
+        $requireCoverageMetadata                         = $xmlConfiguration->phpunit()->requireCoverageMetadata();
+        $registerMockObjectsFromTestArgumentsRecursively = $xmlConfiguration->phpunit()->registerMockObjectsFromTestArgumentsRecursively();
 
         if ($cliConfiguration->hasExecutionOrder()) {
             $executionOrder = $cliConfiguration->executionOrder();
@@ -655,7 +598,6 @@ final readonly class Merger
 
         $logfileTeamcity             = null;
         $logfileJunit                = null;
-        $logfileOtr                  = null;
         $logfileTestdoxHtml          = null;
         $logfileTestdoxText          = null;
         $loggingFromXmlConfiguration = true;
@@ -674,20 +616,6 @@ final readonly class Merger
             $logfileJunit = $cliConfiguration->junitLogfile();
         } elseif ($loggingFromXmlConfiguration && $xmlConfiguration->logging()->hasJunit()) {
             $logfileJunit = $xmlConfiguration->logging()->junit()->target()->path();
-        }
-
-        if ($cliConfiguration->hasOtrLogfile()) {
-            $logfileOtr = $cliConfiguration->otrLogfile();
-        } elseif ($loggingFromXmlConfiguration && $xmlConfiguration->logging()->hasOtr()) {
-            $logfileOtr = $xmlConfiguration->logging()->otr()->target()->path();
-        }
-
-        $includeGitInformationInOtrLogfile = false;
-
-        if ($cliConfiguration->hasIncludeGitInformationInOtrLogfile()) {
-            $includeGitInformationInOtrLogfile = $cliConfiguration->includeGitInformationInOtrLogfile();
-        } elseif ($loggingFromXmlConfiguration && $xmlConfiguration->logging()->hasOtr()) {
-            $includeGitInformationInOtrLogfile = $xmlConfiguration->logging()->otr()->includeGitInformation();
         }
 
         if ($cliConfiguration->hasTestdoxHtmlFile()) {
@@ -726,12 +654,6 @@ final readonly class Merger
             $testDoxOutput = $xmlConfiguration->phpunit()->testdoxPrinter();
         }
 
-        if ($cliConfiguration->hasTestDoxPrinterSummary() && $cliConfiguration->testdoxPrinterSummary()) {
-            $testDoxOutputSummary = true;
-        } else {
-            $testDoxOutputSummary = $xmlConfiguration->phpunit()->testdoxPrinterSummary();
-        }
-
         $noProgress = false;
 
         if ($cliConfiguration->hasNoProgress() && $cliConfiguration->noProgress()) {
@@ -762,43 +684,21 @@ final readonly class Merger
             $testsUsing = $cliConfiguration->testsUsing();
         }
 
-        $testsRequiringPhpExtension = null;
-
-        if ($cliConfiguration->hasTestsRequiringPhpExtension()) {
-            $testsRequiringPhpExtension = $cliConfiguration->testsRequiringPhpExtension();
-        }
-
         $filter = null;
 
         if ($cliConfiguration->hasFilter()) {
             $filter = $cliConfiguration->filter();
         }
 
-        $excludeFilter = null;
-
-        if ($cliConfiguration->hasExcludeFilter()) {
-            $excludeFilter = $cliConfiguration->excludeFilter();
-        }
-
-        $ignoreTestSelectionInXmlConfiguration = false;
-
-        if ($cliConfiguration->hasAll()) {
-            $ignoreTestSelectionInXmlConfiguration = true;
-        }
-
-        $groups = [];
-
         if ($cliConfiguration->hasGroups()) {
             $groups = $cliConfiguration->groups();
-        } elseif (!$ignoreTestSelectionInXmlConfiguration) {
+        } else {
             $groups = $xmlConfiguration->groups()->include()->asArrayOfStrings();
         }
 
-        $excludeGroups = [];
-
         if ($cliConfiguration->hasExcludeGroups()) {
             $excludeGroups = $cliConfiguration->excludeGroups();
-        } elseif (!$ignoreTestSelectionInXmlConfiguration) {
+        } else {
             $excludeGroups = $xmlConfiguration->groups()->exclude()->asArrayOfStrings();
         }
 
@@ -877,13 +777,23 @@ final readonly class Merger
             }
         }
 
-        foreach ($xmlConfiguration->source()->includeDirectories() as $directory) {
-            $sourceIncludeDirectories[] = $directory;
-        }
+        if ($xmlConfiguration->codeCoverage()->hasNonEmptyListOfFilesToBeIncludedInCodeCoverageReport()) {
+            foreach ($xmlConfiguration->codeCoverage()->directories() as $directory) {
+                $sourceIncludeDirectories[] = $directory;
+            }
 
-        $sourceIncludeFiles       = $xmlConfiguration->source()->includeFiles();
-        $sourceExcludeDirectories = $xmlConfiguration->source()->excludeDirectories();
-        $sourceExcludeFiles       = $xmlConfiguration->source()->excludeFiles();
+            $sourceIncludeFiles       = $xmlConfiguration->codeCoverage()->files();
+            $sourceExcludeDirectories = $xmlConfiguration->codeCoverage()->excludeDirectories();
+            $sourceExcludeFiles       = $xmlConfiguration->codeCoverage()->excludeFiles();
+        } else {
+            foreach ($xmlConfiguration->source()->includeDirectories() as $directory) {
+                $sourceIncludeDirectories[] = $directory;
+            }
+
+            $sourceIncludeFiles       = $xmlConfiguration->source()->includeFiles();
+            $sourceExcludeDirectories = $xmlConfiguration->source()->excludeDirectories();
+            $sourceExcludeFiles       = $xmlConfiguration->source()->excludeFiles();
+        }
 
         $useBaseline      = null;
         $generateBaseline = null;
@@ -901,51 +811,10 @@ final readonly class Merger
         assert($useBaseline !== '');
         assert($generateBaseline !== '');
 
-        if ($failOnAllIssues) {
-            $displayDetailsOnAllIssues = true;
-        }
-
-        if ($failOnDeprecation && !$doNotFailOnDeprecation) {
-            $displayDetailsOnTestsThatTriggerDeprecations = true;
-        }
-
-        if ($failOnPhpunitDeprecation && !$doNotFailOnPhpunitDeprecation) {
-            $displayDetailsOnPhpunitDeprecations = true;
-        }
-
-        if ($failOnPhpunitNotice && !$doNotFailOnPhpunitNotice) {
-            $displayDetailsOnPhpunitNotices = true;
-        }
-
-        if ($failOnNotice && !$doNotFailOnNotice) {
-            $displayDetailsOnTestsThatTriggerNotices = true;
-        }
-
-        if ($failOnWarning && !$doNotFailOnWarning) {
-            $displayDetailsOnTestsThatTriggerWarnings = true;
-        }
-
-        if ($failOnIncomplete && !$doNotFailOnIncomplete) {
-            $displayDetailsOnIncompleteTests = true;
-        }
-
-        if ($failOnSkipped && !$doNotFailOnSkipped) {
-            $displayDetailsOnSkippedTests = true;
-        }
-
-        $issueTriggerIdentificationNeeded = $xmlConfiguration->source()->ignoreSelfDeprecations() || $xmlConfiguration->source()->ignoreDirectDeprecations() || $xmlConfiguration->source()->ignoreIndirectDeprecations();
-
-        if ($issueTriggerIdentificationNeeded && !$xmlConfiguration->source()->identifyIssueTrigger()) {
-            EventFacade::emitter()->testRunnerTriggeredPhpunitWarning(
-                'The identification of issue triggers is disabled. However, ignoring self-deprecations, direct deprecations, or indirect deprecations is requested.',
-            );
-        }
-
         return new Configuration(
             $cliConfiguration->arguments(),
             $configurationFile,
             $bootstrap,
-            $xmlConfiguration->phpunit()->bootstrapForTestSuite(),
             $cacheResult,
             $cacheDirectory,
             $coverageCacheDirectory,
@@ -956,6 +825,7 @@ final readonly class Merger
                 $sourceIncludeFiles,
                 $sourceExcludeDirectories,
                 $sourceExcludeFiles,
+                $xmlConfiguration->source()->restrictDeprecations(),
                 $xmlConfiguration->source()->restrictNotices(),
                 $xmlConfiguration->source()->restrictWarnings(),
                 $xmlConfiguration->source()->ignoreSuppressionOfDeprecations(),
@@ -965,11 +835,6 @@ final readonly class Merger
                 $xmlConfiguration->source()->ignoreSuppressionOfPhpNotices(),
                 $xmlConfiguration->source()->ignoreSuppressionOfWarnings(),
                 $xmlConfiguration->source()->ignoreSuppressionOfPhpWarnings(),
-                $xmlConfiguration->source()->deprecationTriggers(),
-                $xmlConfiguration->source()->ignoreSelfDeprecations(),
-                $xmlConfiguration->source()->ignoreDirectDeprecations(),
-                $xmlConfiguration->source()->ignoreIndirectDeprecations(),
-                $xmlConfiguration->source()->identifyIssueTrigger(),
             ),
             $testResultCacheFile,
             $coverageClover,
@@ -985,20 +850,17 @@ final readonly class Merger
             $coverageHtmlColorWarning,
             $coverageHtmlColorDanger,
             $coverageHtmlCustomCssFile,
-            $coverageOpenClover,
             $coveragePhp,
             $coverageText,
             $coverageTextShowUncoveredFiles,
             $coverageTextShowOnlySummary,
             $coverageXml,
-            $coverageXmlIncludeSource,
             $pathCoverage,
             $xmlConfiguration->codeCoverage()->ignoreDeprecatedCodeUnits(),
             $disableCodeCoverageIgnore,
             $failOnAllIssues,
             $failOnDeprecation,
             $failOnPhpunitDeprecation,
-            $failOnPhpunitNotice,
             $failOnPhpunitWarning,
             $failOnEmptyTestSuite,
             $failOnIncomplete,
@@ -1008,7 +870,6 @@ final readonly class Merger
             $failOnWarning,
             $doNotFailOnDeprecation,
             $doNotFailOnPhpunitDeprecation,
-            $doNotFailOnPhpunitNotice,
             $doNotFailOnPhpunitWarning,
             $doNotFailOnEmptyTestSuite,
             $doNotFailOnIncomplete,
@@ -1018,7 +879,6 @@ final readonly class Merger
             $doNotFailOnWarning,
             $stopOnDefect,
             $stopOnDeprecation,
-            $specificDeprecationToStopOn,
             $stopOnError,
             $stopOnFailure,
             $stopOnIncomplete,
@@ -1030,7 +890,7 @@ final readonly class Merger
             $columns,
             $noExtensions,
             $pharExtensionDirectory,
-            array_values($extensionBootstrappers),
+            $extensionBootstrappers,
             $backupGlobals,
             $backupStaticProperties,
             $beStrictAboutChangesToGlobalState,
@@ -1049,12 +909,12 @@ final readonly class Merger
             $displayDetailsOnSkippedTests,
             $displayDetailsOnTestsThatTriggerDeprecations,
             $displayDetailsOnPhpunitDeprecations,
-            $displayDetailsOnPhpunitNotices,
             $displayDetailsOnTestsThatTriggerErrors,
             $displayDetailsOnTestsThatTriggerNotices,
             $displayDetailsOnTestsThatTriggerWarnings,
             $reverseDefectList,
             $requireCoverageMetadata,
+            $registerMockObjectsFromTestArgumentsRecursively,
             $noProgress,
             $noResults,
             $noOutput,
@@ -1063,20 +923,15 @@ final readonly class Merger
             $resolveDependencies,
             $logfileTeamcity,
             $logfileJunit,
-            $logfileOtr,
-            $includeGitInformationInOtrLogfile,
             $logfileTestdoxHtml,
             $logfileTestdoxText,
             $logEventsText,
             $logEventsVerboseText,
             $teamCityOutput,
             $testDoxOutput,
-            $testDoxOutputSummary,
             $testsCovering,
             $testsUsing,
-            $testsRequiringPhpExtension,
             $filter,
-            $excludeFilter,
             $groups,
             $excludeGroups,
             $randomOrderSeed,
@@ -1085,7 +940,6 @@ final readonly class Merger
             $includeTestSuite,
             $excludeTestSuite,
             $xmlConfiguration->phpunit()->hasDefaultTestSuite() ? $xmlConfiguration->phpunit()->defaultTestSuite() : null,
-            $ignoreTestSelectionInXmlConfiguration,
             $testSuffixes,
             new Php(
                 DirectoryCollection::fromArray($includePaths),
@@ -1104,37 +958,6 @@ final readonly class Merger
             $xmlConfiguration->phpunit()->numberOfTestsBeforeGarbageCollection(),
             $generateBaseline,
             $cliConfiguration->debug(),
-            $cliConfiguration->withTelemetry(),
-            $xmlConfiguration->phpunit()->shortenArraysForExportThreshold(),
         );
-    }
-
-    private function hasExplicitTestSelection(CliConfiguration $cliConfiguration): bool
-    {
-        if ($cliConfiguration->hasFilter()) {
-            return true;
-        }
-
-        if ($cliConfiguration->hasExcludeFilter()) {
-            return true;
-        }
-
-        if ($cliConfiguration->hasGroups()) {
-            return true;
-        }
-
-        if ($cliConfiguration->hasExcludeGroups()) {
-            return true;
-        }
-
-        if ($cliConfiguration->hasTestSuite()) {
-            return true;
-        }
-
-        if ($cliConfiguration->hasExcludedTestSuite()) {
-            return true;
-        }
-
-        return false;
     }
 }
