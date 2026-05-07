@@ -61,7 +61,7 @@ jobs:
         run: |
           docker stop backend_container || true
           docker rm backend_container || true
-        docker run -d --name backend_container -p 80:80 -p 443:443 -v /etc/ssl/certs/server.crt:/etc/ssl/certs/server.crt  -v /etc/ssl/private/server.key:/etc/ssl/private/server.key  --env-file .env ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
+          docker run -d --name backend_container -p 80:80 -p 443:443 -v /etc/ssl/certs/server.crt:/etc/ssl/certs/server.crt  -v /etc/ssl/private/server.key:/etc/ssl/private/server.key  --env-file .env ${{ secrets.DOCKER_USERNAME }}/my-backend:latest
      
     
   
