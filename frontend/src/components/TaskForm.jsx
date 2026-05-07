@@ -15,7 +15,12 @@ const TaskForm = ({ onTaskAdded }) => {
             await axios.post(`${BASE_URL}/api/tasks.php`, {
                 title,
                 description
-            });
+            },
+		    {
+		   headers: {
+		    'ngrok-skip-browser-warning': 'true'
+			    }
+		    });
             setTitle('');
             setDescription('');
             onTaskAdded();

@@ -8,7 +8,12 @@ const TaskItem = ({ task, onTaskUpdate }) => {
             await axios.put(`${BASE_URL}/api/tasks.php`, {
                 ...task,
                 status: task.status === 'completed' ? 'pending' : 'completed'
-            });
+            },
+	     {
+                   headers: {
+                    'ngrok-skip-browser-warning': 'true'
+                            }
+                    });
             onTaskUpdate();
         } catch (error) {
             console.error('Error updating task:', error);
@@ -17,7 +22,10 @@ const TaskItem = ({ task, onTaskUpdate }) => {
 
     const deleteTask = async () => {
         try {
-            await axios.delete(`${BASE_URL}/api/tasks.php?id=${task.id}`);
+            await axios.delete(`${BASE_URL}/api/tasks.php?id=${task.id}`, {
+            headers: {
+                'ngrok-skip-browser-warning': 'true'
+            });
             onTaskUpdate();
         } catch (error) {
             console.error('Error deleting task:', error);
