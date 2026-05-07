@@ -8,4 +8,6 @@ RUN echo '<Directory /var/www/html/> \n\
     AllowOverride All \n\
     Require all granted \n\
 </Directory>' >> /etc/apache2/apache2.conf
-EXPOSE 80
+RUN a2enmod ssl
+RUN a2ensite 000-default-ssl
+EXPOSE 80 443
