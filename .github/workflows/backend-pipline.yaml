@@ -25,6 +25,7 @@ jobs:
         run: vendor/bin/phpunit tests
       - run: echo "Test is successfull"
   build_push:
+    needs: test
     runs-on: ubuntu-latest
     defaults:
       run:
